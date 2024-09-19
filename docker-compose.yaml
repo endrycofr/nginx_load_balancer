@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app1:
+    build: ./app1
+    ports:
+      - "5001:5000"  # Memetakan port 5001 di host ke port 5001 di container
+
+  app2:
+    build: ./app2
+    ports:
+      - "5002:5000"  # Memetakan port 5002 di host ke port 5002 di container
+
+  app3:
+    build: ./app3
+    ports:
+      - "5003:5000"  # Memetakan port 5003 di host ke port 5003 di container
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "8080:80"  # Memetakan port 80 di host ke port 80 di container
+    depends_on:
+      - app1
+      - app2
+      - app3
