@@ -13,7 +13,7 @@ Proyek ini menunjukkan cara mengatur Nginx sebagai load balancer menggunakan met
 
 Struktur proyek ini mengatur aplikasi Flask monolitik yang di-load balance oleh Nginx menggunakan Docker dan Docker Compose.
 
-```plaintext
+```
 /home/ubuntu/nginx_load_banlancer/
 ├── app1/
 │   ├── Dockerfile            # Dockerfile untuk membangun app1
@@ -31,6 +31,7 @@ Struktur proyek ini mengatur aplikasi Flask monolitik yang di-load balance oleh 
 │   ├── Dockerfile            # Dockerfile untuk membangun Nginx sebagai load balancer
 │   └── nginx.conf            # Konfigurasi Nginx untuk load balancing
 └── docker-compose.yaml       # Konfigurasi Docker Compose untuk menjalankan semua layanan
+```
 
 ## Konfigurasi Aplikasi
 
