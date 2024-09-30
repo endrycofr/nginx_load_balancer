@@ -9,27 +9,28 @@ Cara membangun dan menjalankan load balancer Nginx dengan teknik round-robin dan
 
 Proyek ini menunjukkan cara mengatur Nginx sebagai load balancer menggunakan metode distribusi **round-robin** untuk mendistribusikan trafik secara merata di antara tiga aplikasi monolitik berbasis Flask.
 
-## Struktur Proyek
-```
+## Struktur Direktori Proyek
+
+Struktur proyek ini mengatur aplikasi Flask monolitik yang di-load balance oleh Nginx menggunakan Docker dan Docker Compose.
+
+```plaintext
 /home/ubuntu/nginx_load_banlancer/
 ├── app1/
-│   ├── Dockerfile
-│   ├── app1.py
-│   └── requirements.txt
+│   ├── Dockerfile            # Dockerfile untuk membangun app1
+│   ├── app1.py               # Kode aplikasi Flask app1
+│   └── requirements.txt      # Dependensi untuk app1
 ├── app2/
-│   ├── Dockerfile
-│   ├── app2.py
-│   └── requirements.txt
+│   ├── Dockerfile            # Dockerfile untuk membangun app2
+│   ├── app2.py               # Kode aplikasi Flask app2
+│   └── requirements.txt      # Dependensi untuk app2
 ├── app3/
-│   ├── Dockerfile
-│   ├── app3.py
-│   └── requirements.txt
+│   ├── Dockerfile            # Dockerfile untuk membangun app3
+│   ├── app3.py               # Kode aplikasi Flask app3
+│   └── requirements.txt      # Dependensi untuk app3
 ├── nginx/
-│   ├── Dockerfile
-│   └── nginx.conf
-└── docker-compose.yaml
-
-````
+│   ├── Dockerfile            # Dockerfile untuk membangun Nginx sebagai load balancer
+│   └── nginx.conf            # Konfigurasi Nginx untuk load balancing
+└── docker-compose.yaml       # Konfigurasi Docker Compose untuk menjalankan semua layanan
 
 ## Konfigurasi Aplikasi
 
