@@ -1,4 +1,4 @@
 ## Architecture
 
-![Architecture Diagram](https://github.com/endrycofr/tomatku/blob/master/images/.jpg)
+![Architecture Diagram](images/arsitektur.drawio.png)
 The system architecture includes:
