@@ -1,4 +1,4 @@
-## Architecture
+## Arsitektur 
 
 ![Architecture Diagram](images/arsitektur.drawio.png)
 
@@ -11,23 +11,22 @@ Proyek ini menunjukkan cara mengatur Nginx sebagai load balancer menggunakan met
 
 ## Struktur Proyek
 ```
-
 /home/ubuntu/nginx_load_banlancer/
 ├── app1/
-└── Dockerfile
-└── app1.py
-└── requirements.txt
+│   ├── Dockerfile
+│   ├── app1.py
+│   └── requirements.txt
 ├── app2/
-└── Dockerfile
-└── app2.py
-└── requirements.txt
+│   ├── Dockerfile
+│   ├── app2.py
+│   └── requirements.txt
 ├── app3/
-└── Dockerfile
-└── app3.py
-└── requirements.txt
+│   ├── Dockerfile
+│   ├── app3.py
+│   └── requirements.txt
 ├── nginx/
-└── Dockerfile
-└── nginx.conf
+│   ├── Dockerfile
+│   └── nginx.conf
 └── docker-compose.yaml
 
 ````
