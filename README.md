@@ -4,7 +4,7 @@
 
 Cara membangun dan menjalankan load balancer Nginx dengan teknik round-robin dan aplikasi monolitik menggunakan Flask dalam Docker:
 
-```markdown
+
 # Nginx Load Balancer with Round Robin
 
 Proyek ini menunjukkan cara mengatur Nginx sebagai load balancer menggunakan metode distribusi **round-robin** untuk mendistribusikan trafik secara merata di antara tiga aplikasi monolitik berbasis Flask.
