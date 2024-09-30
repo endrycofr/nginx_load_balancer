@@ -1,8 +1,15 @@
-grafana:
-  image: grafana/grafana:latest
-  ports:
-    - "3000:3000"
-  volumes:
-    - grafana-data:/var/lib/grafana
-  depends_on:
-    - prometheus
+version: '3'
+
+services:
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"  # Port untuk mengakses Grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Password untuk login
+    volumes:
+      - grafana-storage:/var/lib/grafana  # Penyimpanan data Grafana
+
+volumes:
+  grafana-storage:
+

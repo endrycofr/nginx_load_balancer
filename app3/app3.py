@@ -1,11 +1,16 @@
-from flask import Flask
+from flask import Flask, Response
+import prometheus_client
 
-app1 = Flask(__name__)
+app = Flask(__name__)
 
-@app1.route('/')
+@app.route('/metrics')
+def metrics():
+    # Menghasilkan data metrics untuk Prometheus
+    return Response(prometheus_client.generate_latest(), mimetype=prometheus_client.CONTENT_TYPE_LATEST)
+
+@app.route('/')
 def hello_world():
-    return 'Hi, this is App 3'
+    return 'Hello, World! 3'
 
 if __name__ == '__main__':
-    app1.run(debug=True, host='0.0.0.0')
-
+    app.run(host='0.0.0.0', port=5000)  # Pastikan portnya sesuai

@@ -1,18 +1,15 @@
-# Gunakan image dasar Python 3.8
-FROM python:3
+# Gunakan image Python sebagai base
+FROM python:3.11-slim
 
-# Salin file requirements.txt ke direktori root di dalam image
-COPY requirements.txt /requirements.txt
-
-# Atur direktori kerja
+# Set working directory
 WORKDIR /app
 
-# Install dependensi dari requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt
+# Salin file requirements.txt dan instal dependensi
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Salin seluruh kode aplikasi ke direktori kerja
-COPY . /app
+# Salin kode aplikasi ke dalam container
+COPY app2.py .
 
-# Tentukan perintah untuk menjalankan aplikasi
-ENTRYPOINT ["python3"]
-CMD ["app2.py"]
+# Jalankan aplikasi
+CMD ["python", "app2.py"]
