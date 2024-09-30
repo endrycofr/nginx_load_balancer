@@ -187,6 +187,4 @@ Dengan metode **round-robin**, Nginx memastikan setiap request dibagi secara mer
 
 Dengan menggunakan Docker dan Nginx sebagai load balancer dengan teknik distribusi **round-robin**, aplikasi monolitik dapat berjalan lebih efisien, dan trafik dapat dikelola secara merata untuk memastikan performa optimal.
 
-```
 
-```
