@@ -7,12 +7,13 @@ from sqlalchemy.exc import SQLAlchemyError
 import prometheus_client
 from prometheus_flask_exporter import PrometheusMetrics
 
+# Initialize Flask app
 app = Flask(__name__)
 
 # Prometheus Metrics initialization
 metrics = PrometheusMetrics(app)
 
-# Konfigurasi Database dari environment variable
+# Configuring Database URI from environment variable
 db_uri = os.getenv('DB_URI', 'mysql+mysqlconnector://flask_user:password@db/flask_app_db')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -23,7 +24,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db = SQLAlchemy(app)
 
-# Model Database Absensi
+# Database Model for Absensi (Attendance)
 class Absensi(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nrp = db.Column(db.String(20), nullable=False)
@@ -38,11 +39,11 @@ class Absensi(db.Model):
             'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
         }
 
-# Fungsi untuk menunggu koneksi database
+# Function to wait for the database connection
 def wait_for_database(max_retries=5, delay=5):
     for attempt in range(max_retries):
         try:
-            # Coba koneksi dengan database
+            # Test connection to the database
             with db.engine.connect() as connection:
                 return True
         except Exception as e:
@@ -50,11 +51,11 @@ def wait_for_database(max_retries=5, delay=5):
             time.sleep(delay)
     return False
 
-# Buat Database dan Tabel
-@app.before_first_request
+# Create database tables
 def create_tables():
     try:
         db.create_all()
+        print("Tables created successfully.")
     except Exception as e:
         print(f"Error creating tables: {e}")
 
@@ -62,7 +63,7 @@ def create_tables():
 @app.route('/health', methods=['GET'])
 def health_check():
     try:
-        # Cek koneksi database
+        # Test database connection
         db.session.execute('SELECT 1')
         return jsonify({
             'status': 'healthy', 
@@ -74,7 +75,7 @@ def health_check():
             'error': str(e)
         }), 500
 
-# Route untuk menambah Absensi
+# Route to add Absensi (Attendance)
 @app.route('/absensi', methods=['POST'])
 def create_absensi():
     try:
@@ -103,7 +104,7 @@ def create_absensi():
             'error': str(e)
         }), 500
 
-# Route untuk mendapatkan semua Absensi
+# Route to get all Absensi (Attendance)
 @app.route('/absensi', methods=['GET'])
 def get_absensi():
     try:
@@ -123,7 +124,7 @@ def get_absensi():
             'error': str(e)
         }), 500
 
-# Route untuk memperbarui Absensi
+# Route to update Absensi (Attendance)
 @app.route('/absensi/<int:id>', methods=['PUT'])
 def update_absensi(id):
     try:
@@ -153,7 +154,7 @@ def update_absensi(id):
             'error': str(e)
         }), 500
 
-# Route untuk menghapus Absensi
+# Route to delete Absensi (Attendance)
 @app.route('/absensi/<int:id>', methods=['DELETE'])
 def delete_absensi(id):
     try:
@@ -180,15 +181,16 @@ def delete_absensi(id):
             'error': str(e)
         }), 500
 
-# Route untuk Prometheus Metrics
+# Route to expose Prometheus Metrics
 @app.route('/metrics', methods=['GET'])
 def prometheus_metrics():
     # Register custom metrics
     return Response(prometheus_client.generate_latest(), mimetype='text/plain')
 
 if __name__ == '__main__':
-    # Tunggu koneksi database dengan timeout
+    # Wait for database connection before starting the app
     if wait_for_database():
+        create_tables()  # Explicitly create tables before running the app
         app.run(host='0.0.0.0', port=5000)
     else:
         print("Tidak dapat terhubung ke database. Aplikasi berhenti.")
