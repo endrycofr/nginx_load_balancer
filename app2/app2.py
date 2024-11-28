@@ -66,7 +66,7 @@ def health_check():
         db.session.execute('SELECT 2')
         return jsonify({
             'status': 'healthy', 
-            'app_number': os.getenv('APP_NUMBER', 'Unknown')
+            'app_number': os.getenv('APP_NUMBER', '2')
         }), 200
     except Exception as e:
         return jsonify({
