@@ -39,22 +39,28 @@ class Absensi(db.Model):
 
 # Fungsi untuk menunggu koneksi database
 def wait_for_database(max_retries=5, delay=5):
+    """Wait for the database to be available."""
     for attempt in range(max_retries):
         try:
+            # Test the database connection
             with db.engine.connect() as connection:
+                print("Database connected successfully.")
                 return True
         except Exception as e:
             print(f"Database connection attempt {attempt + 1} failed: {e}")
             time.sleep(delay)
+    print("Max retries reached. Cannot connect to the database.")
     return False
 
-# Create database tables
+# Create database tables if they don't exist
 def create_tables():
+    """Create database tables if not already present."""
     try:
         db.create_all()
         print("Tables created successfully.")
     except Exception as e:
         print(f"Error creating tables: {e}")
+        raise
 
 # Halaman utama
 @app.route('/')
@@ -64,7 +70,9 @@ def index():
 # Health Check Route
 @app.route('/health', methods=['GET'])
 def health_check():
+    """Health check to monitor the app status."""
     try:
+        # Test a query to the database
         db.session.execute('SELECT 1')
         return jsonify({'status': 'healthy', 'app_number': os.getenv('APP_NUMBER', '1')}), 200
     except Exception as e:
@@ -73,6 +81,7 @@ def health_check():
 # Tambah Absensi
 @app.route('/absensi', methods=['POST'])
 def create_absensi():
+    """Add a new attendance record."""
     try:
         data = request.json
         if not data or 'nrp' not in data or 'nama' not in data:
@@ -86,19 +95,25 @@ def create_absensi():
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify({'message': 'Gagal menambahkan absensi', 'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
 
 # Ambil Semua Absensi
 @app.route('/absensi', methods=['GET'])
 def get_absensi():
+    """Get all attendance records."""
     try:
         absensi_list = Absensi.query.all()
         return jsonify({'data': [absensi.to_dict() for absensi in absensi_list]}), 200
     except SQLAlchemyError as e:
         return jsonify({'message': 'Gagal mengambil data absensi', 'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
 
 # Perbarui Absensi
 @app.route('/absensi/<int:id>', methods=['PUT'])
 def update_absensi(id):
+    """Update an existing attendance record."""
     try:
         data = request.json
         absensi = Absensi.query.get(id)
@@ -113,10 +128,13 @@ def update_absensi(id):
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify({'message': 'Gagal memperbarui absensi', 'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
 
 # Hapus Absensi
 @app.route('/absensi/<int:id>', methods=['DELETE'])
 def delete_absensi(id):
+    """Delete an attendance record."""
     try:
         absensi = Absensi.query.get(id)
         if not absensi:
@@ -128,6 +146,8 @@ def delete_absensi(id):
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify({'message': 'Gagal menghapus absensi', 'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
 
 # Jalankan aplikasi
 if __name__ == '__main__':

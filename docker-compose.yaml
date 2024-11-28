@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app1:
     build:
@@ -11,6 +13,10 @@ services:
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
     depends_on:
       - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      retries: 3
 
   app2:
     build:
@@ -24,6 +30,10 @@ services:
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
     depends_on:
       - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      retries: 3
 
   app3:
     build:
@@ -37,6 +47,10 @@ services:
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
     depends_on:
       - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      retries: 3
 
   db:
     image: mysql:8.0
@@ -50,6 +64,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mount init.sql here
 
   nginx:
     build:
@@ -62,6 +77,8 @@ services:
       - app1
       - app2
       - app3
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
 
   prometheus:
     build:
