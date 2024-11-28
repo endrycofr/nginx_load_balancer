@@ -1,10 +1,9 @@
 import os
 import time
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, render_template, Response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
-import prometheus_client
 from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
@@ -42,7 +41,6 @@ class Absensi(db.Model):
 def wait_for_database(max_retries=5, delay=5):
     for attempt in range(max_retries):
         try:
-            # Coba koneksi dengan database
             with db.engine.connect() as connection:
                 return True
         except Exception as e:
@@ -50,7 +48,7 @@ def wait_for_database(max_retries=5, delay=5):
             time.sleep(delay)
     return False
 
-# Create database tables only when database connection is established
+# Create database tables
 def create_tables():
     try:
         db.create_all()
@@ -58,30 +56,25 @@ def create_tables():
     except Exception as e:
         print(f"Error creating tables: {e}")
 
+# Halaman utama
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 # Health Check Route
 @app.route('/health', methods=['GET'])
 def health_check():
     try:
-        # Cek koneksi database
         db.session.execute('SELECT 1')
-        return jsonify({
-            'status': 'healthy',
-            'app_number': os.getenv('APP_NUMBER', '1')
-        }), 200
+        return jsonify({'status': 'healthy', 'app_number': os.getenv('APP_NUMBER', '1')}), 200
     except Exception as e:
-        return jsonify({
-            'status': 'unhealthy',
-            'error': str(e)
-        }), 500
+        return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
 
-# Route untuk menambah Absensi
+# Tambah Absensi
 @app.route('/absensi', methods=['POST'])
 def create_absensi():
     try:
-        app_number = os.getenv('APP_NUMBER', 1)
-        ip_address = request.remote_addr
         data = request.json
-
         if not data or 'nrp' not in data or 'nama' not in data:
             return jsonify({'message': 'Input tidak valid'}), 400
 
@@ -89,48 +82,25 @@ def create_absensi():
         db.session.add(new_absensi)
         db.session.commit()
 
-        return jsonify({
-            'message': 'Absensi berhasil ditambahkan',
-            'data': new_absensi.to_dict(),
-            'app': app_number,
-            'ip_address': ip_address
-        }), 201
-
+        return jsonify({'message': 'Absensi berhasil ditambahkan', 'data': new_absensi.to_dict()}), 201
     except SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({
-            'message': 'Gagal menambahkan absensi',
-            'error': str(e)
-        }), 500
+        return jsonify({'message': 'Gagal menambahkan absensi', 'error': str(e)}), 500
 
-# Route untuk mendapatkan semua Absensi
+# Ambil Semua Absensi
 @app.route('/absensi', methods=['GET'])
 def get_absensi():
     try:
-        app_number = os.getenv('APP_NUMBER', 1)
-        ip_address = request.remote_addr
         absensi_list = Absensi.query.all()
-
-        return jsonify({
-            'data': [absensi.to_dict() for absensi in absensi_list],
-            'app': app_number,
-            'ip_address': ip_address
-        }), 200
-
+        return jsonify({'data': [absensi.to_dict() for absensi in absensi_list]}), 200
     except SQLAlchemyError as e:
-        return jsonify({
-            'message': 'Gagal mengambil data absensi',
-            'error': str(e)
-        }), 500
+        return jsonify({'message': 'Gagal mengambil data absensi', 'error': str(e)}), 500
 
-# Route untuk memperbarui Absensi
+# Perbarui Absensi
 @app.route('/absensi/<int:id>', methods=['PUT'])
 def update_absensi(id):
     try:
-        app_number = os.getenv('APP_NUMBER', 1)
-        ip_address = request.remote_addr
         data = request.json
-
         absensi = Absensi.query.get(id)
         if not absensi:
             return jsonify({'message': 'Absensi tidak ditemukan'}), 404
@@ -139,58 +109,30 @@ def update_absensi(id):
         absensi.nama = data.get('nama', absensi.nama)
         db.session.commit()
 
-        return jsonify({
-            'message': 'Absensi berhasil diperbarui',
-            'data': absensi.to_dict(),
-            'app': app_number,
-            'ip_address': ip_address
-        }), 200
-
+        return jsonify({'message': 'Absensi berhasil diperbarui', 'data': absensi.to_dict()}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({
-            'message': 'Gagal memperbarui absensi',
-            'error': str(e)
-        }), 500
+        return jsonify({'message': 'Gagal memperbarui absensi', 'error': str(e)}), 500
 
-# Route untuk menghapus Absensi
+# Hapus Absensi
 @app.route('/absensi/<int:id>', methods=['DELETE'])
 def delete_absensi(id):
     try:
-        app_number = os.getenv('APP_NUMBER', 1)
-        ip_address = request.remote_addr
-
         absensi = Absensi.query.get(id)
         if not absensi:
             return jsonify({'message': 'Absensi tidak ditemukan'}), 404
 
         db.session.delete(absensi)
         db.session.commit()
-
-        return jsonify({
-            'message': 'Absensi berhasil dihapus',
-            'app': app_number,
-            'ip_address': ip_address
-        }), 200
-
+        return jsonify({'message': 'Absensi berhasil dihapus'}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({
-            'message': 'Gagal menghapus absensi',
-            'error': str(e)
-        }), 500
+        return jsonify({'message': 'Gagal menghapus absensi', 'error': str(e)}), 500
 
-# Route untuk Prometheus Metrics
-@app.route('/metrics', methods=['GET'])
-def prometheus_metrics_app3():
-    app_number = os.getenv('APP_NUMBER', '1')
-    prometheus_client.REGISTRY.register(prometheus_client.Counter(f'custom_metric_{app_number}', 'Custom metric for app'))
-    return Response(prometheus_client.generate_latest(), mimetype='text/plain')
-
+# Jalankan aplikasi
 if __name__ == '__main__':
-    # Tunggu koneksi database dengan timeout
     if wait_for_database():
-        create_tables()  # Create tables after database is connected
+        create_tables()
         app.run(host='0.0.0.0', port=5000)
     else:
         print("Tidak dapat terhubung ke database. Aplikasi berhenti.")
