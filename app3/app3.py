@@ -182,7 +182,7 @@ def delete_absensi(id):
 
 # Route untuk Prometheus Metrics
 @app.route('/metrics', methods=['GET'])
-def prometheus_metrics():
+def prometheus_metrics_app3():
     app_number = os.getenv('APP_NUMBER', '3')
     prometheus_client.REGISTRY.register(prometheus_client.Counter(f'custom_metric_{app_number}', 'Custom metric for app'))
     return Response(prometheus_client.generate_latest(), mimetype='text/plain')
