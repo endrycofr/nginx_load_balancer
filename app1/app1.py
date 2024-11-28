@@ -1,11 +1,16 @@
 import os
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
+import prometheus_client
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
+
+# Prometheus Metrics initialization
+metrics = PrometheusMetrics(app)
 
 # Konfigurasi Database dari environment variable
 db_uri = os.getenv('DB_URI', 'mysql+mysqlconnector://flask_user:password@db/flask_app_db')
@@ -61,7 +66,7 @@ def health_check():
         db.session.execute('SELECT 1')
         return jsonify({
             'status': 'healthy', 
-            'app_number': os.getenv('APP_NUMBER', 'Unknown')
+            'app_number': os.getenv('APP_NUMBER', '1')
         }), 200
     except Exception as e:
         return jsonify({
@@ -73,7 +78,7 @@ def health_check():
 @app.route('/absensi', methods=['POST'])
 def create_absensi():
     try:
-        app_number = os.getenv('APP_NUMBER', 3)
+        app_number = os.getenv('APP_NUMBER', 1)
         ip_address = request.remote_addr
         data = request.json
 
@@ -174,6 +179,12 @@ def delete_absensi(id):
             'message': 'Gagal menghapus absensi',
             'error': str(e)
         }), 500
+
+# Route untuk Prometheus Metrics
+@app.route('/metrics', methods=['GET'])
+def prometheus_metrics():
+    # Register custom metrics
+    return Response(prometheus_client.generate_latest(), mimetype='text/plain')
 
 if __name__ == '__main__':
     # Tunggu koneksi database dengan timeout
