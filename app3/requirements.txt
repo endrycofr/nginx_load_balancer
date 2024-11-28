@@ -1,5 +1,6 @@
-Flask==2.0.1
-MarkupSafe==2.0.1
-prometheus-flask-exporter==0.18.1
-flask_sqlalchemy==2.5.1
+Flask==2.2.3
+Flask-SQLAlchemy==2.5.1
+SQLAlchemy==1.4.35
 mysql-connector-python==8.0.29
+prometheus-flask-exporter==0.18.1
+MarkupSafe==2.0.1
