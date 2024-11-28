@@ -63,7 +63,7 @@ def create_tables():
 def health_check():
     try:
         # Cek koneksi database
-        db.session.execute('SELECT 3')
+        db.session.execute('SELECT 1')
         return jsonify({
             'status': 'healthy',
             'app_number': os.getenv('APP_NUMBER', '3')
@@ -181,13 +181,15 @@ def delete_absensi(id):
         }), 500
 
 # Route untuk Prometheus Metrics
-@app.route(f'/metrics/{os.getenv("APP_NUMBER", 3)}', methods=['GET'])
+@app.route('/metrics', methods=['GET'])
 def prometheus_metrics():
-    # Register custom metrics
+    app_number = os.getenv('APP_NUMBER', '3')
+    prometheus_client.REGISTRY.register(prometheus_client.Counter(f'custom_metric_{app_number}', 'Custom metric for app'))
     return Response(prometheus_client.generate_latest(), mimetype='text/plain')
 
 if __name__ == '__main__':
     # Tunggu koneksi database dengan timeout
+    os.environ['APP_NUMBER'] = '3'
     if wait_for_database():
         create_tables()  # Create tables after database is connected
         app.run(host='0.0.0.0', port=5000)
