@@ -1,11 +1,12 @@
+import os
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy # type: ignore
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 app = Flask(__name__)
 
 # Konfigurasi Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://flask_user:password@db_host/flask_app_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://flask_user:password@db/flask_app_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -25,7 +26,7 @@ def create_tables():
 # Route untuk CRUD Absensi
 @app.route('/absensi', methods=['POST'])
 def create_absensi():
-    app_number = 3  # Example: App 1
+    app_number = os.getenv('APP_NUMBER', 3)  # Dynamically fetch the app number
     ip_address = request.remote_addr
     data = request.json
     new_absensi = Absensi(nrp=data['nrp'], nama=data['nama'])
@@ -39,7 +40,7 @@ def create_absensi():
 
 @app.route('/absensi', methods=['GET'])
 def get_absensi():
-    app_number = 3  # Example: App 1
+    app_number = os.getenv('APP_NUMBER', 3)  # Dynamically fetch the app number
     ip_address = request.remote_addr
     absensi_list = Absensi.query.all()
     return jsonify([{
@@ -53,7 +54,7 @@ def get_absensi():
 
 @app.route('/absensi/<int:id>', methods=['PUT'])
 def update_absensi(id):
-    app_number = 3  # Example: App 1
+    app_number = os.getenv('APP_NUMBER', 3)  # Dynamically fetch the app number
     ip_address = request.remote_addr
     data = request.json
     absensi = Absensi.query.get(id)
@@ -70,7 +71,7 @@ def update_absensi(id):
 
 @app.route('/absensi/<int:id>', methods=['DELETE'])
 def delete_absensi(id):
-    app_number = 3  # Example: App 1
+    app_number = os.getenv('APP_NUMBER', 3)  # Dynamically fetch the app number
     ip_address = request.remote_addr
     absensi = Absensi.query.get(id)
     if not absensi:
