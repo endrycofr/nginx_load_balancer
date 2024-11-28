@@ -40,6 +40,8 @@ services:
       MYSQL_PASSWORD: password
     ports:
       - "3306:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mount the init.sql file for database setup
 
   nginx:
     build: ./nginx
