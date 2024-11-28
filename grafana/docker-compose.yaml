@@ -1,8 +1,11 @@
 grafana:
   image: grafana/grafana:latest
+
   ports:
     - "3000:3000"
   volumes:
     - grafana-data:/var/lib/grafana
+    - /etc/localtime:/etc/localtime:ro
+    - /etc/timezone:/etc/timezone:ro
   depends_on:
     - prometheus

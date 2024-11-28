@@ -1,26 +1,75 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app1:
     build: ./app1
     ports:
-      - "5001:5000"  # Memetakan port 5001 di host ke port 5001 di container
+      - "5001:5000"
+    environment:
+      - APP_NUMBER=1
+      - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
+    depends_on:
+      - db
 
   app2:
     build: ./app2
     ports:
-      - "5002:5000"  # Memetakan port 5002 di host ke port 5002 di container
+      - "5002:5000"
+    environment:
+      - APP_NUMBER=2
+      - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
+    depends_on:
+      - db
 
   app3:
     build: ./app3
     ports:
-      - "5003:5000"  # Memetakan port 5003 di host ke port 5003 di container
+      - "5003:5000"
+    environment:
+      - APP_NUMBER=3
+      - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
+    depends_on:
+      - db
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: flask_app_db
+      MYSQL_USER: flask_user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
 
   nginx:
     build: ./nginx
     ports:
-      - "8080:80"  # Memetakan port 80 di host ke port 80 di container
+      - "8080:80"
     depends_on:
       - app1
       - app2
       - app3
+
+  prometheus:
+    build:
+      context: ./prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # Ensure this file exists
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    ports:
+      - "9090:9090" # Port for accessing Prometheus on the host
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000" # Port for accessing Grafana on the host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Default password for admin
+    volumes:
+      - grafana-storage:/var/lib/grafana # Persistent data storage for Grafana
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+volumes:
+  grafana-storage: # Volume for Grafana's persistent storage
