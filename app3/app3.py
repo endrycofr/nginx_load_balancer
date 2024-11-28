@@ -186,7 +186,6 @@ def prometheus_metrics():
     # Register custom metrics
     return Response(prometheus_client.generate_latest(), mimetype='text/plain')
 
-
 if __name__ == '__main__':
     # Tunggu koneksi database dengan timeout
     if wait_for_database():
