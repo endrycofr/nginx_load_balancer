@@ -50,11 +50,11 @@ def wait_for_database(max_retries=5, delay=5):
             time.sleep(delay)
     return False
 
-# Buat Database dan Tabel
-@app.before_first_request
+# Create database tables only when database connection is established
 def create_tables():
     try:
         db.create_all()
+        print("Tables created successfully.")
     except Exception as e:
         print(f"Error creating tables: {e}")
 
@@ -65,7 +65,7 @@ def health_check():
         # Cek koneksi database
         db.session.execute('SELECT 2')
         return jsonify({
-            'status': 'healthy', 
+            'status': 'healthy',
             'app_number': os.getenv('APP_NUMBER', '2')
         }), 200
     except Exception as e:
@@ -159,14 +159,14 @@ def delete_absensi(id):
     try:
         app_number = os.getenv('APP_NUMBER', 2)
         ip_address = request.remote_addr
-        
+
         absensi = Absensi.query.get(id)
         if not absensi:
             return jsonify({'message': 'Absensi tidak ditemukan'}), 404
-        
+
         db.session.delete(absensi)
         db.session.commit()
-        
+
         return jsonify({
             'message': 'Absensi berhasil dihapus',
             'app': app_number,
@@ -189,6 +189,7 @@ def prometheus_metrics():
 if __name__ == '__main__':
     # Tunggu koneksi database dengan timeout
     if wait_for_database():
+        create_tables()  # Create tables after database is connected
         app.run(host='0.0.0.0', port=5000)
     else:
         print("Tidak dapat terhubung ke database. Aplikasi berhenti.")
