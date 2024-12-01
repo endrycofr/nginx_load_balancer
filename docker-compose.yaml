@@ -30,6 +30,8 @@ services:
       context: ./prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml  # Pastikan file ini ada
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     ports:
       - "9090:9090"  # Port untuk mengakses Prometheus di host
 
@@ -41,6 +43,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin  # Password default untuk admin
     volumes:
       - grafana-storage:/var/lib/grafana  # Penyimpanan data Grafana
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
 volumes:
   grafana-storage:  # Volume untuk penyimpanan data Grafana
