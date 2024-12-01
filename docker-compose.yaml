@@ -26,17 +26,16 @@ services:
       - "8080:80"  # Port untuk mengakses Nginx di host
 
   prometheus:
-    build:
-      context: ./prometheus
+    image: prom/prometheus:latest  # Menggunakan versi terbaru
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml  # Pastikan file ini ada
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     ports:
       - "9090:9090"  # Port untuk mengakses Prometheus di host
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest  # Menggunakan versi terbaru
     ports:
       - "3000:3000"  # Port untuk mengakses Grafana di host
     environment:
@@ -48,4 +47,3 @@ services:
 
 volumes:
   grafana-storage:  # Volume untuk penyimpanan data Grafana
-
