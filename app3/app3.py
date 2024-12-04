@@ -51,9 +51,13 @@ db_uri = os.getenv(
 )
 app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 280,
-    "pool_pre_ping": True,
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 280,
+    'pool_pre_ping': True,
+    'pool_timeout': 30,  # Tambahkan timeout
+    'connect_args': {
+        'connect_timeout': 10  # Timeout koneksi dalam detik
+    }
 }
 
 db = SQLAlchemy(app)
@@ -100,21 +104,19 @@ def after_request(response):
 
     return response
 
-
-# Wait for Database Connection
-def wait_for_database(max_retries=5, delay=5):
+def wait_for_database(max_retries=10, delay=5):  # Naikkan max_retries
+    logger.info(f"Attempting to connect to database: {db_uri}")
     for attempt in range(1, max_retries + 1):
         try:
             with app.app_context():
                 with db.engine.connect() as connection:
-                    logger.info("Database connected successfully.")
+                    logger.info(f"Database connected successfully on attempt {attempt}")
                     return True
         except Exception as e:
             logger.warning(f"Database connection attempt {attempt} failed: {e}")
             time.sleep(delay)
     logger.error("Max retries reached. Cannot connect to the database.")
     return False
-
 
 # Create Tables if Needed
 def create_tables():
