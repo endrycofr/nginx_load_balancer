@@ -1,7 +1,7 @@
 services:
   app1: &app-template
     build:
-      context: ./app
+      context: ./app1
       platforms:
         - linux/arm64
     ports:
@@ -21,6 +21,10 @@ services:
 
   app2:
     <<: *app-template
+    build:
+      context: ./app2
+      platforms:
+        - linux/arm64
     ports:
       - "5002:5000"
     environment:
@@ -29,6 +33,10 @@ services:
 
   app3:
     <<: *app-template
+    build:
+      context: ./app3
+      platforms:
+        - linux/arm64
     ports:
       - "5003:5000"
     environment:
@@ -47,7 +55,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test:
         [
