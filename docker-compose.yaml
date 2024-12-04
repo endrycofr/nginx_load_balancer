@@ -1,5 +1,7 @@
+version: "3.8"
+
 services:
-  app1: &app-template
+  app1:
     build:
       context: ./app1
       platforms:
@@ -11,7 +13,7 @@ services:
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -20,7 +22,6 @@ services:
       start_period: 40s
 
   app2:
-    <<: *app-template
     build:
       context: ./app2
       platforms:
@@ -30,9 +31,17 @@ services:
     environment:
       - APP_NUMBER=2
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   app3:
-    <<: *app-template
     build:
       context: ./app3
       platforms:
@@ -42,6 +51,15 @@ services:
     environment:
       - APP_NUMBER=3
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   db:
     image: mysql:8.0
@@ -120,7 +138,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       prometheus:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   grafana-storage:
