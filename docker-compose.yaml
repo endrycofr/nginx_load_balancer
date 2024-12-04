@@ -1,9 +1,9 @@
-version: "3.8"
-
 services:
   app1:
     build:
       context: ./app1
+      platforms:
+        - linux/arm64
     ports:
       - "5001:5000"
     environment:
@@ -12,13 +12,15 @@ services:
     depends_on:
       - db
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       retries: 3
 
   app2:
     build:
       context: ./app2
+      platforms:
+        - linux/arm64
     ports:
       - "5002:5000"
     environment:
@@ -27,13 +29,15 @@ services:
     depends_on:
       - db
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       retries: 3
 
   app3:
     build:
       context: ./app3
+      platforms:
+        - linux/arm64
     ports:
       - "5003:5000"
     environment:
@@ -42,13 +46,13 @@ services:
     depends_on:
       - db
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       retries: 3
 
   db:
     image: mysql:8.0
-    container_name: mysql
+    platform: linux/arm64
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: flask_app_db
@@ -58,11 +62,13 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mount init.sql here
 
   nginx:
     build:
       context: ./nginx
+      platforms:
+        - linux/arm64
     ports:
       - "8080:80"
     depends_on:
@@ -70,14 +76,17 @@ services:
       - app2
       - app3
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
 
   prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
+    build:
+      context: ./prometheus
+      platforms:
+        - linux/arm64
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     ports:
       - "9090:9090"
     depends_on:
@@ -92,9 +101,9 @@ services:
       - "3000:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
-      - ./grafana/config.ini:/etc/grafana/grafana.ini:ro
-      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
-      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml:ro
+      - ./grafana/config.ini:/etc/grafana/grafana.ini
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/default.yaml
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/default.yaml
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
