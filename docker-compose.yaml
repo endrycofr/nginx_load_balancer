@@ -1,7 +1,7 @@
 services:
-  app1:
+  app1: &app-template
     build:
-      context: ./app1
+      context: ./app
       platforms:
         - linux/arm64
     ports:
@@ -10,45 +10,30 @@ services:
       - APP_NUMBER=1
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
     depends_on:
-      - db
+      db:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
+      timeout: 10s
       retries: 3
+      start_period: 40s
 
   app2:
-    build:
-      context: ./app2
-      platforms:
-        - linux/arm64
+    <<: *app-template
     ports:
       - "5002:5000"
     environment:
       - APP_NUMBER=2
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
-    depends_on:
-      - db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      retries: 3
 
   app3:
-    build:
-      context: ./app3
-      platforms:
-        - linux/arm64
+    <<: *app-template
     ports:
       - "5003:5000"
     environment:
       - APP_NUMBER=3
       - DB_URI=mysql+mysqlconnector://flask_user:password@db/flask_app_db
-    depends_on:
-      - db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      retries: 3
 
   db:
     image: mysql:8.0
@@ -62,7 +47,23 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mount init.sql here
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p$$MYSQL_ROOT_PASSWORD",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   nginx:
     build:
@@ -72,9 +73,12 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - app1
-      - app2
-      - app3
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+      app3:
+        condition: service_healthy
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
 
@@ -90,13 +94,15 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - app1
-      - app2
-      - app3
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+      app3:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
     ports:
       - "3000:3000"
     volumes:
@@ -106,7 +112,8 @@ services:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/default.yaml
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_started
 
 volumes:
   grafana-storage:
