@@ -89,18 +89,24 @@ services:
       - /etc/timezone:/etc/timezone:ro
     ports:
       - "9090:9090"
+    depends_on:
+      - app1
+      - app2
+      - app3
 
   grafana:
     image: grafana/grafana:latest
-    platform: linux/arm64
+    container_name: grafana
     ports:
       - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana-storage:/var/lib/grafana
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
+      - ./grafana/config.ini:/etc/grafana/grafana.ini
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/default.yaml
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/default.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
 
 volumes:
   grafana-storage:
