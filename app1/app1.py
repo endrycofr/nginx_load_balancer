@@ -105,6 +105,7 @@ def after_request(response):
     return response
 
 def wait_for_database(max_retries=10, delay=5):  # Naikkan max_retries
+    
     logger.info(f"Attempting to connect to database: {db_uri}")
     for attempt in range(1, max_retries + 1):
         try:
