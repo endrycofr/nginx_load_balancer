@@ -42,33 +42,61 @@ LATENCY_PERCENTILES = Histogram(
     "Request duration distribution",
     buckets=[0.1, 0.25, 0.5, 0.75, 1, 2, 5, 10],
 )
+ARRIVAL_TIME = Gauge("process_arrival_time_seconds", "Arrival time of the process", ["process_id"])
+BURST_TIME = Gauge("process_burst_time_seconds", "Burst time of the process", ["process_id"])
+BURST_TIME_METRIC = Histogram(
+    "process_burst_time_distribution_seconds",
+    "Distribution of process burst times",
+    buckets=[0.1, 0.5, 1, 2, 5, 10]
+)
 CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 MEMORY_USAGE = Gauge("memory_usage_percent", "Memory usage percentage")
-ARRIVAL_TIME = Gauge("process_arrival_time", "Arrival time of the process", ["process_id"])
-BURST_TIME = Gauge("process_burst_time", "Burst time of the process", ["process_id"])
 
 # Assume you are tracking the process data
 def track_process_metrics(process_id, arrival_time, burst_time):
     ARRIVAL_TIME.labels(process_id=process_id).set(arrival_time)
     BURST_TIME.labels(process_id=process_id).set(burst_time)
 
-# Example usage in a route
 @app.route("/process/<process_id>", methods=["POST"])
 def track_process(process_id):
+    """Track process arrival and burst times."""
     try:
+        # Parse request JSON
         arrival_time = request.json.get("arrival_time")
         burst_time = request.json.get("burst_time")
-        
-        # Ensure both arrival_time and burst_time are present
+
+        # Validate inputs
         if arrival_time is None or burst_time is None:
             return jsonify({"message": "Arrival time and burst time are required"}), 400
-        
+
+        try:
+            arrival_time = float(arrival_time)
+            burst_time = float(burst_time)
+        except ValueError:
+            return jsonify({"message": "Arrival time and burst time must be numeric"}), 400
+
         # Track metrics
-        track_process_metrics(process_id, arrival_time, burst_time)
+        ARRIVAL_TIME.labels(process_id=process_id).set(arrival_time)
+        BURST_TIME.labels(process_id=process_id).set(burst_time)
+        BURST_TIME_METRIC.observe(burst_time)
+
         return jsonify({"message": "Process tracked successfully"}), 200
     except Exception as e:
         logger.error(f"Error tracking process {process_id}: {e}")
         return jsonify({"message": "Failed to track process", "error": str(e)}), 500
+
+@app.route("/metrics/custom", methods=["GET"])
+def custom_metrics():
+    """Expose custom system metrics."""
+    try:
+        metrics_data = {
+            "cpu_usage": psutil.cpu_percent(),
+            "memory_usage": psutil.virtual_memory().percent,
+        }
+        return jsonify(metrics_data), 200
+    except Exception as e:
+        logger.error(f"Error fetching custom metrics: {e}")
+        return jsonify({"message": "Failed to fetch custom metrics", "error": str(e)}), 500
 
 # Database Configuration
 db_uri = os.getenv(
@@ -160,6 +188,7 @@ def index():
 
 @app.route("/health", methods=["GET"])
 def health_check():
+    
     try:
         with app.app_context():
             db.session.execute("SELECT 1")
