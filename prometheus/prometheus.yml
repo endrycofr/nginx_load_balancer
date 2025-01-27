@@ -1,4 +1,5 @@
 global:
+<<<<<<< HEAD
   scrape_interval: 15s # How often to scrape targets by default
 
 scrape_configs:
@@ -15,3 +16,23 @@ scrape_configs:
     static_configs:
       - targets:
           - "nginx:8080"
+=======
+  scrape_interval: 5s  # Waktu untuk mengumpulkan data
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+scrape_configs:
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']  # Ganti dengan port yang digunakan oleh load balancer
+
+  - job_name: 'app1'
+    static_configs:
+      - targets: ['app1:5000']  # Port aplikasi 1
+
+  - job_name: 'app2'
+    static_configs:
+      - targets: ['app2:5000']  # Port aplikasi 2
+
+  - job_name: 'app3'
+    static_configs:
+      - targets: ['app3:5000']  # Port aplikasi 3
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e

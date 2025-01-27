@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 version: "3.8"
+=======
+version: '3'
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e
 
 services:
   app1:
     build:
       context: ./app1
+<<<<<<< HEAD
       platforms:
         - linux/arm64
     ports:
@@ -19,10 +24,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+=======
+    ports:
+      - "5000:5000"
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e
 
   app2:
     build:
       context: ./app2
+<<<<<<< HEAD
       platforms:
         - linux/arm64
     ports:
@@ -38,10 +48,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+=======
+    ports:
+      - "5001:5000"
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e
 
   app3:
     build:
       context: ./app3
+<<<<<<< HEAD
       platforms:
         - linux/arm64
     ports:
@@ -86,10 +101,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+=======
+    ports:
+      - "5002:5000"
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e
 
   nginx:
     build:
       context: ./nginx
+<<<<<<< HEAD
       platforms:
         - linux/arm64
     ports:
@@ -106,11 +126,19 @@ services:
       context: ./prometheus
       platforms:
         - linux/arm64
+=======
+    ports:
+      - "8080:80"  # Port untuk mengakses Nginx di host
+
+  prometheus:
+    image: prom/prometheus:latest  # Menggunakan versi terbaru
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     ports:
+<<<<<<< HEAD
       - "9090:9090"
     depends_on:
       - app1
@@ -133,3 +161,20 @@ services:
 volumes:
   grafana-storage:
   mysql-data:
+=======
+      - "9090:9090"  # Port untuk mengakses Prometheus di host
+
+  grafana:
+    image: grafana/grafana:latest  # Menggunakan versi terbaru
+    ports:
+      - "3000:3000"  # Port untuk mengakses Grafana di host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Password default untuk admin
+    volumes:
+      - grafana-storage:/var/lib/grafana  # Penyimpanan data Grafana
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+volumes:
+  grafana-storage:  # Volume untuk penyimpanan data Grafana
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e

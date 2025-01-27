@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -19,7 +20,6 @@ app = Flask(__name__)
 # Prometheus Metrics Initialization
 metrics = PrometheusMetrics(app)
 metrics.info("app_info", "Application Info", version="1.0.0")
-
 # Prometheus Custom Metrics
 REQUEST_COUNT = Counter(
     "flask_request_operations_total",

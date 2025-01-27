@@ -1,4 +1,5 @@
 Flask
+<<<<<<< HEAD
 Flask-SQLAlchemy
 SQLAlchemy
 mysql-connector-python
@@ -12,3 +13,7 @@ psutil
 marshmallow
 python-dotenv
 gunicorn
+=======
+MarkupSafe
+prometheus-flask-exporter
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e

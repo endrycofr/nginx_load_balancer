@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -235,3 +236,21 @@ if __name__ == "__main__":
     else:
         logger.critical("Tidak dapat terhubung ke database. Aplikasi berhenti.")
         exit(1)
+=======
+from flask import Flask, Response
+import prometheus_client
+
+app = Flask(__name__)
+
+@app.route('/metrics')
+def metrics():
+    # Menghasilkan data metrics untuk Prometheus
+    return Response(prometheus_client.generate_latest(), mimetype=prometheus_client.CONTENT_TYPE_LATEST)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World! 3'
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)  # Pastikan portnya sesuai
+>>>>>>> 29b4750f76282410e5b7952fdb20a63756a5fc0e
