@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -20,6 +19,7 @@ app = Flask(__name__)
 # Prometheus Metrics Initialization
 metrics = PrometheusMetrics(app)
 metrics.info("app_info", "Application Info", version="1.0.0")
+
 # Prometheus Custom Metrics
 REQUEST_COUNT = Counter(
     "flask_request_operations_total",
@@ -51,13 +51,11 @@ db_uri = os.getenv(
 )
 app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 280,
-    'pool_pre_ping': True,
-    'pool_timeout': 30,  # Tambahkan timeout
-    'connect_args': {
-        'connect_timeout': 10  # Timeout koneksi dalam detik
-    }
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 280,
+    "pool_pre_ping": True,
+    "pool_timeout": 30,
+    "connect_args": {"connect_timeout": 10},
 }
 
 db = SQLAlchemy(app)
@@ -94,17 +92,21 @@ def after_request(response):
         latency = time.time() - request.start_time
         REQUEST_LATENCY.labels(endpoint=request.endpoint, method=request.method).observe(latency)
         LATENCY_PERCENTILES.observe(latency)
-        REQUEST_COUNT.labels(endpoint=request.endpoint, method=request.method, http_status=response.status_code).inc()
+        REQUEST_COUNT.labels(
+            endpoint=request.endpoint or "unknown", method=request.method, http_status=response.status_code
+        ).inc()
 
     if response.status_code >= 400:
-        ERROR_COUNT.labels(endpoint=request.endpoint, http_status=response.status_code).inc()
+        ERROR_COUNT.labels(endpoint=request.endpoint or "unknown", http_status=response.status_code).inc()
 
     CPU_USAGE.set(psutil.cpu_percent(interval=0.1))
     MEMORY_USAGE.set(psutil.virtual_memory().percent)
 
     return response
 
-def wait_for_database(max_retries=10, delay=5):  # Naikkan max_retries
+
+# Database Connection Retry
+def wait_for_database(max_retries=10, delay=5):
     logger.info(f"Attempting to connect to database: {db_uri}")
     for attempt in range(1, max_retries + 1):
         try:
@@ -117,6 +119,7 @@ def wait_for_database(max_retries=10, delay=5):  # Naikkan max_retries
             time.sleep(delay)
     logger.error("Max retries reached. Cannot connect to the database.")
     return False
+
 
 # Create Tables if Needed
 def create_tables():
@@ -151,17 +154,17 @@ def create_absensi():
     try:
         data = request.json
         if not data or "nrp" not in data or "nama" not in data:
-            return jsonify({"message": "Input tidak valid"}), 400
+            return jsonify({"message": "Invalid input"}), 400
 
         new_absensi = Absensi(nrp=data["nrp"], nama=data["nama"])
         db.session.add(new_absensi)
         db.session.commit()
 
-        return jsonify({"message": "Absensi berhasil ditambahkan", "data": new_absensi.to_dict()}), 200
+        return jsonify({"message": "Absensi added successfully", "data": new_absensi.to_dict()}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"SQLAlchemy error during create_absensi: {e}")
-        return jsonify({"message": "Gagal menambahkan absensi", "error": str(e)}), 500
+        return jsonify({"message": "Failed to add absensi", "error": str(e)}), 500
     except Exception as e:
         logger.error(f"Unexpected error during create_absensi: {e}")
         return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
@@ -173,39 +176,39 @@ def get_absensi():
         absensi_list = Absensi.query.order_by(Absensi.timestamp.desc()).all()
         return jsonify(
             {
-                "message": "Berhasil mengambil data absensi",
+                "message": "Absensi data retrieved successfully",
                 "total": len(absensi_list),
                 "data": [absensi.to_dict() for absensi in absensi_list],
             }
         ), 200
     except SQLAlchemyError as e:
         logger.error(f"SQLAlchemy error during get_absensi: {e}")
-        return jsonify({"message": "Gagal mengambil data absensi", "error": str(e)}), 500
+        return jsonify({"message": "Failed to retrieve absensi data", "error": str(e)}), 500
     except Exception as e:
         logger.error(f"Unexpected error during get_absensi: {e}")
-        return jsonify({"message": "Terjadi kesalahan tidak terduga", "error": str(e)}), 500
+        return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
 
 
-@app.route('/absensi/<int:id>', methods=['PUT'])
+@app.route("/absensi/<int:id>", methods=["PUT"])
 def update_absensi(id):
     try:
         data = request.json
         absensi = Absensi.query.get(id)
         if not absensi:
-            return jsonify({'message': 'Absensi tidak ditemukan'}), 404
+            return jsonify({"message": "Absensi not found"}), 404
 
-        absensi.nrp = data.get('nrp', absensi.nrp)
-        absensi.nama = data.get('nama', absensi.nama)
+        absensi.nrp = data.get("nrp", absensi.nrp)
+        absensi.nama = data.get("nama", absensi.nama)
         db.session.commit()
 
-        return jsonify({'message': 'Absensi berhasil diperbarui', 'data': absensi.to_dict()}), 200
+        return jsonify({"message": "Absensi updated successfully", "data": absensi.to_dict()}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"SQLAlchemy error during update_absensi: {e}")
-        return jsonify({'message': 'Gagal memperbarui absensi', 'error': str(e)}), 500
+        return jsonify({"message": "Failed to update absensi", "error": str(e)}), 500
     except Exception as e:
         logger.error(f"Unexpected error during update_absensi: {e}")
-        return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
+        return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
 
 
 @app.route("/absensi/<int:id>", methods=["DELETE"])
@@ -213,16 +216,16 @@ def delete_absensi(id):
     try:
         absensi = Absensi.query.get(id)
         if not absensi:
-            return jsonify({"message": "Absensi tidak ditemukan"}), 404
+            return jsonify({"message": "Absensi not found"}), 404
 
         db.session.delete(absensi)
         db.session.commit()
 
-        return jsonify({"message": "Absensi berhasil dihapus", "deleted_id": id}), 200
+        return jsonify({"message": "Absensi deleted successfully", "deleted_id": id}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"SQLAlchemy error during delete_absensi: {e}")
-        return jsonify({"message": "Gagal menghapus absensi", "error": str(e)}), 500
+        return jsonify({"message": "Failed to delete absensi", "error": str(e)}), 500
     except Exception as e:
         logger.error(f"Unexpected error during delete_absensi: {e}")
         return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
@@ -233,5 +236,5 @@ if __name__ == "__main__":
         create_tables()
         app.run(host="0.0.0.0", port=5000)
     else:
-        logger.critical("Tidak dapat terhubung ke database. Aplikasi berhenti.")
+        logger.critical("Unable to connect to database. Application terminated.")
         exit(1)
