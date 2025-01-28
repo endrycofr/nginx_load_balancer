@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -14,13 +15,11 @@ from sqlalchemy.exc import SQLAlchemyError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Flask application setup
 app = Flask(__name__)
 
 # Prometheus Metrics Initialization
 metrics = PrometheusMetrics(app)
 metrics.info("app_info", "Application Info", version="1.0.0")
-
 # Prometheus Custom Metrics
 REQUEST_COUNT = Counter(
     "flask_request_operations_total",
@@ -42,61 +41,8 @@ LATENCY_PERCENTILES = Histogram(
     "Request duration distribution",
     buckets=[0.1, 0.25, 0.5, 0.75, 1, 2, 5, 10],
 )
-ARRIVAL_TIME = Gauge("process_arrival_time_seconds", "Arrival time of the process", ["process_id"])
-BURST_TIME = Gauge("process_burst_time_seconds", "Burst time of the process", ["process_id"])
-BURST_TIME_METRIC = Histogram(
-    "process_burst_time_distribution_seconds",
-    "Distribution of process burst times",
-    buckets=[0.1, 0.5, 1, 2, 5, 10]
-)
 CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 MEMORY_USAGE = Gauge("memory_usage_percent", "Memory usage percentage")
-
-# Assume you are tracking the process data
-def track_process_metrics(process_id, arrival_time, burst_time):
-    ARRIVAL_TIME.labels(process_id=process_id).set(arrival_time)
-    BURST_TIME.labels(process_id=process_id).set(burst_time)
-
-@app.route("/process/<process_id>", methods=["POST"])
-def track_process(process_id):
-    """Track process arrival and burst times."""
-    try:
-        # Parse request JSON
-        arrival_time = request.json.get("arrival_time")
-        burst_time = request.json.get("burst_time")
-
-        # Validate inputs
-        if arrival_time is None or burst_time is None:
-            return jsonify({"message": "Arrival time and burst time are required"}), 400
-
-        try:
-            arrival_time = float(arrival_time)
-            burst_time = float(burst_time)
-        except ValueError:
-            return jsonify({"message": "Arrival time and burst time must be numeric"}), 400
-
-        # Track metrics
-        ARRIVAL_TIME.labels(process_id=process_id).set(arrival_time)
-        BURST_TIME.labels(process_id=process_id).set(burst_time)
-        BURST_TIME_METRIC.observe(burst_time)
-
-        return jsonify({"message": "Process tracked successfully"}), 200
-    except Exception as e:
-        logger.error(f"Error tracking process {process_id}: {e}")
-        return jsonify({"message": "Failed to track process", "error": str(e)}), 500
-
-@app.route("/metrics/custom", methods=["GET"])
-def custom_metrics():
-    """Expose custom system metrics."""
-    try:
-        metrics_data = {
-            "cpu_usage": psutil.cpu_percent(),
-            "memory_usage": psutil.virtual_memory().percent,
-        }
-        return jsonify(metrics_data), 200
-    except Exception as e:
-        logger.error(f"Error fetching custom metrics: {e}")
-        return jsonify({"message": "Failed to fetch custom metrics", "error": str(e)}), 500
 
 # Database Configuration
 db_uri = os.getenv(
@@ -108,8 +54,10 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_recycle': 280,
     'pool_pre_ping': True,
-    'pool_timeout': 30,  
-    'connect_args': {'connect_timeout': 10} 
+    'pool_timeout': 30,  # Tambahkan timeout
+    'connect_args': {
+        'connect_timeout': 10  # Timeout koneksi dalam detik
+    }
 }
 
 db = SQLAlchemy(app)
@@ -156,8 +104,7 @@ def after_request(response):
 
     return response
 
-# Retry logic to wait for database connection
-def wait_for_database(max_retries=10, delay=5): 
+def wait_for_database(max_retries=10, delay=5):  # Naikkan max_retries
     logger.info(f"Attempting to connect to database: {db_uri}")
     for attempt in range(1, max_retries + 1):
         try:
@@ -181,10 +128,12 @@ def create_tables():
         logger.error(f"Error creating database tables: {e}")
         raise
 
+
 # Routes
 @app.route("/")
 def index():
     return render_template("index.html")
+
 
 @app.route("/health", methods=["GET"])
 def health_check():
@@ -195,6 +144,7 @@ def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
 
 @app.route("/absensi", methods=["POST"])
 def create_absensi():
@@ -216,6 +166,7 @@ def create_absensi():
         logger.error(f"Unexpected error during create_absensi: {e}")
         return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
 
+
 @app.route("/absensi", methods=["GET"])
 def get_absensi():
     try:
@@ -233,6 +184,7 @@ def get_absensi():
     except Exception as e:
         logger.error(f"Unexpected error during get_absensi: {e}")
         return jsonify({"message": "Terjadi kesalahan tidak terduga", "error": str(e)}), 500
+
 
 @app.route('/absensi/<int:id>', methods=['PUT'])
 def update_absensi(id):
@@ -255,6 +207,7 @@ def update_absensi(id):
         logger.error(f"Unexpected error during update_absensi: {e}")
         return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
 
+
 @app.route("/absensi/<int:id>", methods=["DELETE"])
 def delete_absensi(id):
     try:
@@ -265,7 +218,7 @@ def delete_absensi(id):
         db.session.delete(absensi)
         db.session.commit()
 
-        return jsonify({"message": "Absensi berhasil dihapus"}), 200
+        return jsonify({"message": "Absensi berhasil dihapus", "deleted_id": id}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"SQLAlchemy error during delete_absensi: {e}")
@@ -274,7 +227,11 @@ def delete_absensi(id):
         logger.error(f"Unexpected error during delete_absensi: {e}")
         return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
 
+
 if __name__ == "__main__":
     if wait_for_database():
         create_tables()
-        app.run(debug=True, host="0.0.0.0", port=5000)
+        app.run(host="0.0.0.0", port=5000)
+    else:
+        logger.critical("Tidak dapat terhubung ke database. Aplikasi berhenti.")
+        exit(1)
