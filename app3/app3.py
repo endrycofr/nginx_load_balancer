@@ -8,8 +8,8 @@ import logging
 import psutil
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import Counter, Histogram, Gauge
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
-from threading import Thread
+from sqlalchemy.exc import SQLAlchemyError
+import threading
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -44,7 +44,6 @@ LATENCY_PERCENTILES = Histogram(
 )
 CPU_USAGE = Gauge("cpu_usage_percent", "CPU usage percentage")
 MEMORY_USAGE = Gauge("memory_usage_percent", "Memory usage percentage")
-DB_CONNECTION_ERRORS = Counter("db_connection_errors_total", "Total number of database connection errors")
 
 # Database Configuration
 db_uri = os.getenv(
@@ -53,13 +52,9 @@ db_uri = os.getenv(
 )
 app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 280,
-    'pool_pre_ping': True,
-    'pool_timeout': 30,
-    'connect_args': {
-        'connect_timeout': 10
-    }
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 280,
+    "pool_pre_ping": True,
 }
 
 db = SQLAlchemy(app)
@@ -91,7 +86,7 @@ def update_system_metrics():
         time.sleep(5)  # Update every 5 seconds
 
 # Start the background thread to update system metrics
-Thread(target=update_system_metrics, daemon=True).start()
+threading.Thread(target=update_system_metrics, daemon=True).start()
 
 # Monitoring Middleware
 @app.before_request
@@ -112,17 +107,15 @@ def after_request(response):
     return response
 
 # Wait for Database Connection
-def wait_for_database(max_retries=10, delay=5):
-    logger.info(f"Attempting to connect to database: {db_uri}")
+def wait_for_database(max_retries=5, delay=5):
     for attempt in range(1, max_retries + 1):
         try:
             with app.app_context():
-                db.session.execute("SELECT 1")
-                logger.info(f"Database connected successfully on attempt {attempt}")
-                return True
-        except OperationalError as e:
+                with db.engine.connect() as connection:
+                    logger.info("Database connected successfully.")
+                    return True
+        except Exception as e:
             logger.warning(f"Database connection attempt {attempt} failed: {e}")
-            DB_CONNECTION_ERRORS.inc()
             time.sleep(delay)
     logger.error("Max retries reached. Cannot connect to the database.")
     return False
