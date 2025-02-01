@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -10,6 +9,7 @@ import psutil
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import Counter, Histogram, Gauge
 from sqlalchemy.exc import SQLAlchemyError
+import threading
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -52,13 +52,9 @@ db_uri = os.getenv(
 )
 app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 280,
-    'pool_pre_ping': True,
-    'pool_timeout': 30,  # Tambahkan timeout
-    'connect_args': {
-        'connect_timeout': 10  # Timeout koneksi dalam detik
-    }
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 280,
+    "pool_pre_ping": True,
 }
 
 db = SQLAlchemy(app)
@@ -82,12 +78,20 @@ class Absensi(db.Model):
             "timestamp": local_timestamp.strftime("%Y-%m-%d %H:%M:%S %Z"),
         }
 
+# Function to update CPU and Memory usage
+def update_system_metrics():
+    while True:
+        CPU_USAGE.set(psutil.cpu_percent(interval=1.0))
+        MEMORY_USAGE.set(psutil.virtual_memory().percent)
+        time.sleep(5)  # Update every 5 seconds
+
+# Start the background thread to update system metrics
+threading.Thread(target=update_system_metrics, daemon=True).start()
 
 # Monitoring Middleware
 @app.before_request
 def before_request():
     request.start_time = time.time()
-
 
 @app.after_request
 def after_request(response):
@@ -100,19 +104,15 @@ def after_request(response):
     if response.status_code >= 400:
         ERROR_COUNT.labels(endpoint=request.endpoint, http_status=response.status_code).inc()
 
-    CPU_USAGE.set(psutil.cpu_percent(interval=0.1))
-    MEMORY_USAGE.set(psutil.virtual_memory().percent)
-
     return response
 
-def wait_for_database(max_retries=10, delay=5):  # Naikkan max_retries
-    
-    logger.info(f"Attempting to connect to database: {db_uri}")
+# Wait for Database Connection
+def wait_for_database(max_retries=5, delay=5):
     for attempt in range(1, max_retries + 1):
         try:
             with app.app_context():
                 with db.engine.connect() as connection:
-                    logger.info(f"Database connected successfully on attempt {attempt}")
+                    logger.info("Database connected successfully.")
                     return True
         except Exception as e:
             logger.warning(f"Database connection attempt {attempt} failed: {e}")
@@ -130,12 +130,10 @@ def create_tables():
         logger.error(f"Error creating database tables: {e}")
         raise
 
-
 # Routes
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 @app.route("/health", methods=["GET"])
 def health_check():
@@ -146,7 +144,6 @@ def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
-
 
 @app.route("/absensi", methods=["POST"])
 def create_absensi():
@@ -168,7 +165,6 @@ def create_absensi():
         logger.error(f"Unexpected error during create_absensi: {e}")
         return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
 
-
 @app.route("/absensi", methods=["GET"])
 def get_absensi():
     try:
@@ -186,7 +182,6 @@ def get_absensi():
     except Exception as e:
         logger.error(f"Unexpected error during get_absensi: {e}")
         return jsonify({"message": "Terjadi kesalahan tidak terduga", "error": str(e)}), 500
-
 
 @app.route('/absensi/<int:id>', methods=['PUT'])
 def update_absensi(id):
@@ -209,7 +204,6 @@ def update_absensi(id):
         logger.error(f"Unexpected error during update_absensi: {e}")
         return jsonify({'message': 'An unexpected error occurred', 'error': str(e)}), 500
 
-
 @app.route("/absensi/<int:id>", methods=["DELETE"])
 def delete_absensi(id):
     try:
@@ -229,11 +223,10 @@ def delete_absensi(id):
         logger.error(f"Unexpected error during delete_absensi: {e}")
         return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
 
-
+# Run the app
 if __name__ == "__main__":
     if wait_for_database():
         create_tables()
-        app.run(host="0.0.0.0", port=5000)
+        app.run(debug=True, host="0.0.0.0", port=5000)
     else:
-        logger.critical("Tidak dapat terhubung ke database. Aplikasi berhenti.")
-        exit(1)
+        logger.error("Application cannot start due to database connection issues.")
